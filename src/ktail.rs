@@ -19,18 +19,15 @@
 
 extern crate getopts;
 use getopts::Options;
+use kafka::consumer::{Consumer, FetchOffset, GroupOffsetStorage};
 use std::io::{self, Write};
 use std::time::Duration;
 use std::{env, process};
-use kafka::consumer::{Consumer, FetchOffset, GroupOffsetStorage};
 
 mod base;
 
-
-
-fn tail(cfg: base::Config, number:i32) {
-
-	let mut c = {
+fn tail(cfg: base::Config, number: i32) {
+    let mut c = {
         let mut cb = Consumer::from_hosts(cfg.brokers)
             .with_group(cfg.group)
             .with_fallback_offset(cfg.fallback_offset)
@@ -43,11 +40,11 @@ fn tail(cfg: base::Config, number:i32) {
         cb.create().unwrap()
     };
 
-	let stdout = io::stdout();
+    let stdout = io::stdout();
     let mut stdout = stdout.lock();
     let mut buf = Vec::with_capacity(1024);
     let do_commit = !cfg.no_commit;
-    let mut count:i32 = 0;
+    let mut count: i32 = 0;
     loop {
         for ms in c.poll().unwrap().iter() {
             for m in ms.messages() {
@@ -74,12 +71,12 @@ fn tail(cfg: base::Config, number:i32) {
 
 /// print usage information for ktail
 fn print_usage(program: &str, opts: Options) {
-	let brief = format!("Usage: {} brokers topic [options]", program);
+    let brief = format!("Usage: {} brokers topic [options]", program);
     print!("{}", opts.usage(&brief));
 }
 
 fn main() {
-	let args: Vec<String> = env::args().collect();
+    let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
     let mut opts = Options::new();
     opts.optflag("h", "help", "print this help menu");
@@ -88,18 +85,20 @@ fn main() {
                      standard input is a pipe, but not if it is a FIFO.");
 
     let matches = match opts.parse(&args[1..]) {
-        Ok(m) => { m }
-        Err(f) => { panic!("Error {}", f.to_string()) }
+        Ok(m) => m,
+        Err(f) => {
+            panic!("Error {}", f.to_string())
+        }
     };
 
     if matches.opt_present("h") {
         print_usage(&program, opts);
         return;
     }
-    let brokers:Vec<&str> = matches.free[0].split(",").collect();
-    let brokers:Vec<String> = brokers.iter().map(|&x|String::from(x)).collect();
+    let brokers: Vec<&str> = matches.free[0].split(",").collect();
+    let brokers: Vec<String> = brokers.iter().map(|&x| String::from(x)).collect();
     let config = base::Config {
-        brokers:brokers,
+        brokers: brokers,
         group: String::from("group"),
         topic: matches.free[1].clone(),
         format: base::MessageFormat::JSON,
@@ -107,7 +106,7 @@ fn main() {
         message_queue_type: base::MessageQueueType::Kafka,
         no_commit: true,
     };
-    let mut number:i32 = 0;
+    let mut number: i32 = 0;
     if matches.opt_present("n") {
         number = matches.opt_str("n").unwrap().parse().unwrap();
     }

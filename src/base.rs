@@ -42,4 +42,3 @@ pub struct Config {
     pub fallback_offset: FetchOffset,
     pub format: MessageFormat,
 }
-
