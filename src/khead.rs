@@ -26,17 +26,17 @@ use std::{env, process};
 
 mod base;
 
-fn tail(cfg: base::Config, number: i32) {
+fn head(cfg: base::Config, number: i32) {
     let mut c = {
         let mut cb = Consumer::from_hosts(cfg.brokers)
             .with_group(cfg.group)
-            .with_fallback_offset(cfg.fallback_offset)
+            .with_fallback_offset(FetchOffset::Earliest)
             .with_fetch_max_wait_time(Duration::from_secs(1))
             .with_fetch_min_bytes(1_000)
             .with_fetch_max_bytes_per_partition(100_000)
             .with_retry_max_bytes_limit(1_000_000)
             .with_topic(cfg.topic)
-            .with_client_id("ktail".into());
+            .with_client_id("khead".into());
         cb.create().unwrap()
     };
 
@@ -108,5 +108,5 @@ fn main() {
     if matches.opt_present("n") {
         number = matches.opt_str("n").unwrap().parse().unwrap();
     }
-    tail(config, number);
+    head(config, number);
 }

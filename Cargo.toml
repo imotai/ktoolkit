@@ -10,3 +10,7 @@ getopts = "0.2"
 [[bin]]
 name = "ktail"
 path = "src/ktail.rs"
+
+[[bin]]
+name = "khead"
+path = "src/khead.rs"
