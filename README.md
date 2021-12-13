@@ -1,6 +1,6 @@
 # ktools
 
-Debug and Ops topics of Message Queue(eg kafka, pulsar) like touch, echo, head, tail with ktouch, kecho, khead and ktail
+Debug and Ops topics of Message Queue(eg kafka, pulsar, rabbitmq) like touch, rm, ls, echo, head, tail with ktouch, krm, kls, kecho, khead and ktail
 
 # Why ktools
 
