@@ -1,0 +1,12 @@
+[package]
+name = "ktools"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+kafka = "0.8"
+getopts = "0.2"
+
+[[bin]]
+name = "ktail"
+path = "src/ktail.rs"
