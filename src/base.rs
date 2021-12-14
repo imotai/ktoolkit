@@ -1,6 +1,6 @@
 //
 //
-// config.rs
+// base.rs
 // Copyright (C) 2021 ktools Author imotai <codego.me@gmail.com>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,13 +17,24 @@
 //
 //
 
-use kafka::consumer::{FetchOffset, GroupOffsetStorage};
-use kafka::error::Error as KafkaError;
-
-/// the type of message queue , eg kafka, pulsar
-pub enum MessageQueueType {
+/// The type of message queue server eg kafka, pulsar, activemq, rabbitmq
+pub enum MessageQueueServerType {
     Kafka,
     Pulsar,
+}
+
+/// Define the topic position to read
+pub enum ReadPosition {
+    /// read the head
+    Head {
+        limit:i32
+    },
+    /// read the tail
+    Tail {
+        limit:i32
+    },
+    /// read all messages
+    All,
 }
 
 /// the format of message
@@ -32,13 +43,34 @@ pub enum MessageFormat {
     Text,
 }
 
-/// the config of message queue
-pub struct Config {
-    pub message_queue_type: MessageQueueType,
+/// config for message server
+#[derive(Copy, Clone)]
+pub struct MessageServerConfig {
     pub brokers: Vec<String>,
-    pub group: String,
+    pub server_type: MessageQueueServerType,
+}
+
+/// the config of message queue
+#[derive(Copy, Clone)]
+pub struct TopicConfig {
     pub topic: String,
-    pub no_commit: bool,
-    pub fallback_offset: FetchOffset,
+    pub offset_position: ReadPosition,
     pub format: MessageFormat,
+    pub fetch_max_bytes_read_per_partition: i32,
+}
+
+impl Clone for MessageServerConfig {
+    fn clone(&self) -> MessageServerConfig {
+        *self
+    }
+}
+
+impl Clone for TopicConfig {
+    fn clone(&self) -> TopicConfig {
+        *self
+    }
+}
+
+pub struct KToolsError {
+    pub err : String,
 }

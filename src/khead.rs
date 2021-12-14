@@ -1,7 +1,7 @@
 //
 //
 // ktail.rs
-// Copyright (C) 2021 peasdb.ai Author imotai <codego.me@gmail.com>
+// Copyright (C) 2021 ktools Author imotai <codego.me@gmail.com>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,55 +18,113 @@
 //
 
 extern crate getopts;
+
 use getopts::Options;
-use kafka::consumer::{Consumer, FetchOffset, GroupOffsetStorage};
+use kafka::consumer::{Consumer, FetchOffset, MessageSets};
 use std::io::{self, Write};
 use std::time::Duration;
 use std::{env, process};
 
 mod base;
 
-fn head(cfg: base::Config, number: i32) {
-    let mut c = {
-        let mut cb = Consumer::from_hosts(cfg.brokers)
-            .with_group(cfg.group)
-            .with_fallback_offset(FetchOffset::Earliest)
-            .with_fetch_max_wait_time(Duration::from_secs(1))
-            .with_fetch_min_bytes(1_000)
-            .with_fetch_max_bytes_per_partition(100_000)
-            .with_retry_max_bytes_limit(1_000_000)
-            .with_topic(cfg.topic)
-            .with_client_id("khead".into());
-        cb.create().unwrap()
-    };
+///
+/// Kafka HeadConsumer which provide following features
+/// 1. consume first n messages
+/// 2. consume last n messages
+/// 3. consume all messages
+///
+#[derive(Debug)]
+pub struct KtoolsConsumer {
+    consumer: Consumer,
+    broker_config: base::MessageServerConfig,
+    topic_config: base::TopicConfig,
+    verbose:i32,
+}
 
-    let stdout = io::stdout();
-    let mut stdout = stdout.lock();
-    let mut buf = Vec::with_capacity(1024);
-    let do_commit = !cfg.no_commit;
-    let mut count: i32 = 0;
-    loop {
-        for ms in c.poll().unwrap().iter() {
-            for m in ms.messages() {
+impl KtoolsConsumer {
+    pub fn new(broker_config: base::MessageServerConfig,
+               topic_config: base::TopicConfig,
+               verbose:i32) -> Result<KtoolsConsumer, base::KToolsError> {
+        let mut cb = Consumer::from_hosts(broker_config.brokers)
+            .with_fetch_min_bytes(1_000)
+            .with_fetch_max_bytes_per_partition(topic_config.fetch_max_bytes_read_per_partition) // control the max bytes to read
+            .with_topic(topic_config.topic);
+        let position = topic_config.offset_position;
+        match position {
+            base::ReadPosition::All | base::ReadPosition::Head => cb.with_fallback_offset(FetchOffset::Earliest),
+            base::ReadPosition::Tail => cb.with_fallback_offset(FetchOffset::Latest),
+        };
+        let consumer = KtoolsConsumer {
+            consumer: cb.create().unwrap(),
+            broker_config: broker_config.clone(),
+            topic_config: topic_config.clone(),
+            verbose,
+        };
+        Ok(consumer)
+    }
+
+    pub fn consume(&mut self) {
+        let position = self.topic_config.offset_position.clone();
+        match position {
+            base::ReadPosition::Head {limit} => {
+                fetch(limit)
+            }
+            base::ReadPosition::Tail {limit} => {
+                fetch(limit)
+            }
+            _ => {
+                fetch(-1)
+            }
+        }
+    }
+
+    fn fetch(&mut self, limit: i32) {
+        let mut count = 0;
+        loop {
+            let ms = self.consumer.poll();
+            match ms {
+                Ok=> {
+                    let left_limit = limit - count;
+                    count += self.display(ms.unwrap(), self.verbose, left_limit);
+                }
+                Err=> {
+                    println!("fail get message with error");
+                }
+            }
+            if count >= limit && limit >= 0 {
+                return
+            }
+        }
+    }
+
+    fn display(&self, ms: MessageSets, verbose: i32, limit: i32) -> i32 {
+        let stdout = io::stdout();
+        let mut stdout = stdout.lock();
+        let mut buf = Vec::with_capacity(1024);
+        let mut count = 0;
+        for i in ms.iter() {
+            for m in i.messages() {
                 // ~ clear the output buffer
                 unsafe { buf.set_len(0) };
-                // ~ format the message for output
-                let _ = write!(buf, "{}:{}@{}:", ms.topic(), ms.partition(), m.offset);
+                match verbose {
+                    0 => {}
+                    _ => {
+                        let _ = write!(buf, "{}:{}@{}:", ms.topic(), ms.partition(), m.offset);
+                    }
+                }
                 buf.extend_from_slice(m.value);
                 buf.push(b'\n');
                 // ~ write to output channel
                 stdout.write_all(&buf);
                 count += 1;
-                if number > 0 && count >= number {
-                    return;
+                if count >= limit && limit >= 0{
+                    return count;
                 }
             }
-            let _ = c.consume_messageset(ms);
         }
-        if do_commit {
-            c.commit_consumed();
-        }
+        count
     }
+
 }
 
 /// print usage information for ktail
@@ -81,7 +139,6 @@ fn main() {
     let mut opts = Options::new();
     opts.optflag("h", "help", "print this help menu");
     opts.optopt("n", "", "The location is number lines", "NUMBER");
-    opts.optflag("f", "", "The -f option causes tail to not stop when end of file is reached, but rather to wait for additional data to be appended to the input.  The -f option is ignored if the standard input is a pipe, but not if it is a FIFO.");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
         Err(f) => {
@@ -92,21 +149,32 @@ fn main() {
         print_usage(&program, opts);
         return;
     }
-
     let brokers: Vec<&str> = matches.free[0].split(",").collect();
     let brokers: Vec<String> = brokers.iter().map(|&x| String::from(x)).collect();
-    let config = base::Config {
-        brokers: brokers,
-        group: String::from("group"),
-        topic: matches.free[1].clone(),
-        format: base::MessageFormat::JSON,
-        fallback_offset: FetchOffset::Latest,
-        message_queue_type: base::MessageQueueType::Kafka,
-        no_commit: true,
-    };
-    let mut number: i32 = 0;
+
+    let mut number: i32 = -1;
     if matches.opt_present("n") {
         number = matches.opt_str("n").unwrap().parse().unwrap();
     }
-    head(config, number);
+    let broker_config = base::MessageServerConfig {
+        brokers,
+        server_type: base::MessageQueueServerType::Kafka,
+    };
+    let topic_config = base::TopicConfig {
+        topic:matches.free[1].clone(),
+        offset_position: base::ReadPosition::Head {
+            limit:number,
+        },
+        format: base::MessageFormat::JSON,
+        fetch_max_bytes_read_per_partition: 1000_1000,
+    };
+    let mut consumer = KtoolsConsumer::new(broker_config, topic_config, 10);
+    match consumer {
+        Ok(mut c) => {
+            c.consume()
+        }
+        _ => {
+            println!("some errors")
+        }
+    }
 }
