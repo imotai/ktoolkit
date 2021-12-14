@@ -1,7 +1,5 @@
-//
-//
-// khead.rs
-// Copyright (C) 2021 ktools Author imotai <codego.me@gmail.com>
+// kecho.rs
+// Copyright (C) 2021 zombie <zombie@zombie>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,14 +18,26 @@
 extern crate getopts;
 use getopts::Options;
 use std::env;
+use std::time::Duration;
+use kafka::error::Error as KafkaError;
+use kafka::producer::{Producer, Record, RequiredAcks};
+
 mod base;
+fn send_message(topic:&str, broker: Vec<String>, msg:&str)-> Result<(), KafkaError> {
+	let mut producer = Producer::from_hosts(broker)
+        .with_ack_timeout(Duration::from_secs(1))
+        .with_required_acks(RequiredAcks::One)
+        .create()?;
+    producer.send(&Record::from_value(topic, msg.as_bytes()))?;
+    Ok(())
+}
+
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
     let mut opts = Options::new();
     opts.optflag("h", "help", "print this help menu");
-    opts.optopt("n", "", "the location is number lines", "number");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
         Err(f) => {
@@ -40,26 +50,14 @@ fn main() {
     }
     let brokers: Vec<&str> = matches.free[0].split(",").collect();
     let brokers: Vec<String> = brokers.iter().map(|&x| String::from(x)).collect();
+    send_message(&matches.free[1], brokers, &matches.free[2]);
+}
 
-    let mut number: i32 = -1;
-    if matches.opt_present("n") {
-        number = matches.opt_str("n").unwrap().parse().unwrap();
-    }
-    let broker_config = base::MessageServerConfig {
-        brokers,
-        server_type: base::MessageQueueServerType::Kafka,
-    };
-    let topic_config = base::TopicConfig {
-        topic: matches.free[1].clone(),
-        offset_position: base::ReadPosition::Head { limit: number },
-        format: base::MessageFormat::JSON,
-        fetch_max_bytes_read_per_partition: 1000_1000,
-    };
-    let consumer = base::KtoolsConsumer::new(broker_config, topic_config, 10);
-    match consumer {
-        Ok(mut c) => c.consume(),
-        _ => {
-            println!("some errors")
-        }
-    }
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn it_works() {
+	}
 }

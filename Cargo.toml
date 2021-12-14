@@ -6,7 +6,20 @@ edition = "2021"
 [dependencies]
 kafka = "0.8"
 getopts = "0.2"
+prettytable-rs = "^0.8"
 
 [[bin]]
 name = "khead"
 path = "src/khead.rs"
+
+[[bin]]
+name = "kls"
+path = "src/kls.rs"
+
+[[bin]]
+name = "ktail"
+path = "src/ktail.rs"
+
+[[bin]]
+name = "kecho"
+path = "src/kecho.rs"

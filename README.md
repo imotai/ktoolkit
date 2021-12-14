@@ -1,45 +1,40 @@
 # Kafka CLI Tools 
 
-DevOps topics of Message Queue(eg kafka, pulsar, rabbitmq) like touch, rm, ls, echo, head, tail and top with ktouch, krm, kls, kecho, khead , ktail and ktop
-
-# Why 
-
-* super light weight, just one binary with size 5M written by rust, You can use it on mac , windows, and linux
-* devops topics like files
-* devops topics from diffirent message queue server with the same experiences
+DevOps topics of Message Queue(eg kafka, pulsar, rabbitmq) like ls, echo, head and tail  with kls, kecho, khead and ktail
 
 # Getting Started
 
-## Create a topic 
+## build
 
 ```
-ktouch localhost:9092 quickstart-topic
-```
-
-## Send a message
+cargo build
 
 ```
+
+## usage
+
+```
+# show all topics
+kls localhost:9092
+ # | topics            | partitions 
+---+-------------------+------------
+ 1 | quickstart-topic  | 1 
+
+# send a json object
 kecho localhost:9092 quickstart-topic '{"msg":"hello world!"}'
+
+# scan all message
+khead  localhost:9092 quickstart-topic
+quickstart-topic:0@5:{"msg":"hello world!"}
+
+# tail topic
+ktail localhost:9092 quickstart-topic
 ```
 
-or with a json file
+# thanks
 
-```
-kecho localhost:9092 quickstart-topic -f hello_world.json
-```
-
-## Read topics with head
-
-```
-khead localhost:9092 quickstart-topic -n 100
-```
-
-## Read topics with tail
-
-
-```
-ktail localhost:9092 quickstart-topic -f 
-```
+* https://github.com/phsym/prettytable-rs
+* https://github.com/kafka-rust/kafka-rust
 
 # other kafka tools
 

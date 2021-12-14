@@ -1,6 +1,6 @@
 //
 //
-// khead.rs
+// ktail.rs
 // Copyright (C) 2021 ktools Author imotai <codego.me@gmail.com>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,7 @@
 extern crate getopts;
 use getopts::Options;
 use std::env;
+use std::io::{self, Write};
 mod base;
 
 fn main() {
@@ -27,11 +28,12 @@ fn main() {
     let program = args[0].clone();
     let mut opts = Options::new();
     opts.optflag("h", "help", "print this help menu");
-    opts.optopt("n", "", "the location is number lines", "number");
+    opts.optflag("f", "", "no stop");
+    opts.optopt("n", "", "The location is number lines", "NUMBER");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
         Err(f) => {
-            panic!("error {}", f.to_string())
+            panic!("Error {}", f.to_string())
         }
     };
     if matches.opt_present("h") {
@@ -51,7 +53,7 @@ fn main() {
     };
     let topic_config = base::TopicConfig {
         topic: matches.free[1].clone(),
-        offset_position: base::ReadPosition::Head { limit: number },
+        offset_position: base::ReadPosition::Tail { limit: number },
         format: base::MessageFormat::JSON,
         fetch_max_bytes_read_per_partition: 1000_1000,
     };
