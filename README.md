@@ -1,4 +1,4 @@
-# ktools (kafka cli tools) 
+# kkits (kafka tool kits)
 
 ![ktools](./images/ktools.png)
 devops kafka topics like files with kls, ktail, khead, kseek, kgrep and kecho
