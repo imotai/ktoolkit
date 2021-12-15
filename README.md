@@ -1,4 +1,4 @@
-# ktookkit (kafka tool kit)
+# ktookkit (kafka toolkit)
 
 ![ktoolkit](./images/ktoolkit.png)
 
