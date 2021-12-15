@@ -1,6 +1,6 @@
-# Kafka CLI Tools 
+# ktools (kafka cli tools) 
 
-DevOps topics of Message Queue(eg kafka, pulsar, rabbitmq) like ls, echo, head and tail  with kls, kecho, khead and ktail
+devops kafka topic as a file with kls, ktail, khead and kecho
 
 # Getting Started
 
