@@ -1,6 +1,7 @@
 # ktools (kafka cli tools) 
 
-devops kafka topic as a file with kls, ktail, khead and kecho
+![ktools](./images/ktools.png)
+devops kafka topic as a file with kls, ktail, khead, kseek, kgrep and kecho
 
 # Getting Started
 
@@ -8,7 +9,6 @@ devops kafka topic as a file with kls, ktail, khead and kecho
 
 ```
 cargo build
-
 ```
 
 ## usage
