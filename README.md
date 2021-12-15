@@ -1,7 +1,7 @@
 # ktools (kafka cli tools) 
 
 ![ktools](./images/ktools.png)
-devops kafka topic as a file with kls, ktail, khead, kseek, kgrep and kecho
+devops kafka topics like files with kls, ktail, khead, kseek, kgrep and kecho
 
 # Getting Started
 
