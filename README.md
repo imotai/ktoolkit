@@ -1,7 +1,6 @@
-# kkits (kafka tool kits)
+# ktookkit (kafka tool kit)
 
-![kkits](./images/kkits.png)
-devops kafka topics like files with kls, ktail, khead, kseek, kgrep and kecho
+![ktoolkit](./images/ktoolkit.png)
 
 # Getting Started
 
